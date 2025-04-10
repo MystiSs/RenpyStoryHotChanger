@@ -32,7 +32,7 @@ init python in shcs_store:
             self.replace_in_instance()
 
         def __eq__(self, other):
-            return self.filename == other.filename and self.linenumber == other.linenumber
+            return self.filename == other.filename and self.linenumber == other.linenumber and self.who == other.who
 
     def make_tags_safe(text):
         return text.replace('{', '<').replace('}', '>')

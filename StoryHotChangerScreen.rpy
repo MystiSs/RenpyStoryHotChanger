@@ -254,7 +254,6 @@ screen shcs_overlay():
 
                             hovered Show("shcs_line_as_code", node=node.ast)
                             unhovered Hide("shcs_line_as_code")
-                            # action [Show("shcs_change_text", node=node.ast, mode="who"), Hide("shcs_line_as_code")]
                             action [Show("shcs_change_sayer", node=node.ast), Hide("shcs_line_as_code")]
 
                         textbutton shcs_dialogue_shorter(node.ast.what):
@@ -341,6 +340,10 @@ screen shcs_change_sayer(node, search=""):
     
     default filtered_chars = tools.filter_characters(all_chars, search)
 
+    #TODO: Возможно, стоит вынести режим фильтрации вне экрана, чтобы состояние сохранялось#
+    default filter_mode = "tags"
+    $ current_filter_mode = "{color=#3cbd00}Тег{/color}" if filter_mode == "tags" else "{color=#3cbd00}Имя{/color}"
+
     $ chars_per_page = 10
     $ chars_total = len(filtered_chars)
     $ total_pages = (chars_total + chars_per_page - 1) // chars_per_page
@@ -362,7 +365,10 @@ screen shcs_change_sayer(node, search=""):
         text "Тэг говорящего: [current_who_tag]" style "shcs_text_other_style"
         text "Имя говорящего: [current_who_name]" style "shcs_text_other_style"
         
-        text "Чтобы найти нужного персонажа, введите часть имени (переменной):" style "shcs_text_other_style"
+        text "Режим фильтрации: [current_filter_mode]" style "shcs_text_other_style"
+        text "Чтобы найти нужного персонажа, введите часть {}:".format("его тега (переменной)" if filter_mode == "tags" else "его имени"):
+            style "shcs_text_other_style"
+
         add Null(0, 10)
 
         input:

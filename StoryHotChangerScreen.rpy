@@ -38,9 +38,12 @@ init python:
         "default_input": ["shift_K_a"]
     }
 
-    def shsc_eval_who(who=None):
+    def shcs_eval_who(who=None):
         """
-        Получение объекта персонажа используя его кодовое обозначение. Если None, то это narrator (RenPy делает также)
+        Получение объекта персонажа используя его кодовое обозначение. Если None, то это narrator (RenPy делает также).
+
+        Agrs:
+            who: Кодовое имя персонажа (название переменной). Возможно, принимает и сам объект, а ast.eval_who() корректно его обработает, но я не уверен.
         """
 
         if who is None:
@@ -52,7 +55,7 @@ init python:
         Обновляет экран диалогов (экран отображения диалога) с использованием данных из узла диалога.
 
         Args:
-            node: Узел диалога (обычно объект класса Say).
+            node: Узел диалога (обычно объект класса ast.Say).
             screen: Имя экрана диалогов для обновления. Если не указано, используется значение из объекта персонажа.
 
         Returns:
@@ -62,7 +65,7 @@ init python:
         if node != shcs_get_node(renpy.game.context().current):
             return
 
-        who_instance = shsc_eval_who(who)
+        who_instance = shcs_eval_who(who)
         screen_name = screen or who_instance.screen
         if renpy.get_screen(screen_name) is None:
             return
@@ -98,7 +101,7 @@ init python:
         
         return current_node
 
-screen shsc_line_as_code(node):
+screen shcs_line_as_code(node):
     zorder 1100
 
     $ code_line = node.get_code()
@@ -193,10 +196,10 @@ screen shcs_overlay():
                         style "shcs_textbutton_style"
                         text_style "shcs_text_style"
 
-                        hovered Show("shsc_line_as_code", node=current_node_instance)
-                        unhovered Hide("shsc_line_as_code")
-                        action [Show("shcs_change_text", node=current_node_instance), Hide("shsc_line_as_code")]
-                        alternate [Show("shcs_change_text", node=current_node_instance, mode="who"), Hide("shsc_line_as_code")]
+                        hovered Show("shcs_line_as_code", node=current_node_instance)
+                        unhovered Hide("shcs_line_as_code")
+                        action [Show("shcs_change_text", node=current_node_instance), Hide("shcs_line_as_code")]
+                        alternate [Show("shcs_change_text", node=current_node_instance, mode="who"), Hide("shcs_line_as_code")]
 
                     text "Файл: {} | Строка: [current_node_instance.linenumber]".format(current_node_instance.filename.split('/')[-1]):
                         style "shcs_text_other_style"
@@ -218,10 +221,10 @@ screen shcs_overlay():
                                 style "shcs_textbutton_style"
                                 text_style "shcs_text_style"
 
-                                hovered Show("shsc_line_as_code", node=next_node)
-                                unhovered Hide("shsc_line_as_code")
-                                action [Show("shcs_change_text", node=next_node), Hide("shsc_line_as_code")]
-                                alternate [Show("shcs_change_text", node=next_node, mode="who"), Hide("shsc_line_as_code")]
+                                hovered Show("shcs_line_as_code", node=next_node)
+                                unhovered Hide("shcs_line_as_code")
+                                action [Show("shcs_change_text", node=next_node), Hide("shcs_line_as_code")]
+                                alternate [Show("shcs_change_text", node=next_node, mode="who"), Hide("shcs_line_as_code")]
 
                             text "Файл: {} | Строка: [next_node.linenumber]".format(next_node.filename.split('/')[-1]):
                                 style "shcs_text_other_style"
@@ -245,17 +248,17 @@ screen shcs_overlay():
                             style "shcs_textbutton_style"
                             text_style "shcs_text_style"
 
-                            hovered Show("shsc_line_as_code", node=node.instance)
-                            unhovered Hide("shsc_line_as_code")
-                            action [Show("shcs_change_text", node=node.instance, mode="who"), Hide("shsc_line_as_code")]
+                            hovered Show("shcs_line_as_code", node=node.instance)
+                            unhovered Hide("shcs_line_as_code")
+                            action [Show("shcs_change_text", node=node.instance, mode="who"), Hide("shcs_line_as_code")]
 
                         textbutton shcs_dialogue_shorter(node.instance.what):
                             style "shcs_textbutton_style"
                             text_style "shcs_text_style"
 
-                            hovered Show("shsc_line_as_code", node=node.instance)
-                            unhovered Hide("shsc_line_as_code")
-                            action [Show("shcs_change_text", node=node.instance, mode="what"), Hide("shsc_line_as_code")]
+                            hovered Show("shcs_line_as_code", node=node.instance)
+                            unhovered Hide("shcs_line_as_code")
+                            action [Show("shcs_change_text", node=node.instance, mode="what"), Hide("shcs_line_as_code")]
 
                     hbox:
                         textbutton "Сбросить персонажа":

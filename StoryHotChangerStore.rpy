@@ -1,9 +1,12 @@
 init python in shcs_store:
+    from renpy.store import shcs_try_update_say_screen as try_update_say_screen
+
+
     changed_dialogue_nodes = set()
 
     class DialogueNode:
         def __init__(self, node):
-            self.instance = node
+            self.ast = node
 
             self.who = node.who
             self.what = node.what
@@ -14,22 +17,22 @@ init python in shcs_store:
             self.filename = node.filename
             self.linenumber = node.linenumber
 
-        def replace_in_instance(self):
-            self.instance.who = self.who
-            self.instance.what = self.what
+        def replace_in_ast(self):
+            self.ast.who = self.who
+            self.ast.what = self.what
 
         def to_default(self):
             self.who = self.old_who
             self.what = self.old_what
-            self.replace_in_instance()
+            self.replace_in_ast()
 
         def to_default_who(self):
             self.who = self.old_who
-            self.replace_in_instance()
+            self.replace_in_ast()
 
         def to_default_what(self):
             self.what = self.old_what
-            self.replace_in_instance()
+            self.replace_in_ast()
 
         def __eq__(self, other):
             return self.filename == other.filename and self.linenumber == other.linenumber and self.who == other.who
@@ -53,7 +56,8 @@ init python in shcs_store:
         elif mode == "who":
             node.who = new_text
         
-        node.replace_in_instance()
+        node.replace_in_ast()
+        try_update_say_screen(node.ast)
 
     def is_text_equal(node, new_text, mode):
         if mode == "what":
@@ -62,9 +66,9 @@ init python in shcs_store:
             return node.who == new_text
 
     def find_by_node(node):
-        for n in changed_dialogue_nodes:
-            if n.instance == node:
-                return n
+        for dialogue_node in changed_dialogue_nodes:
+            if dialogue_node.ast == node:
+                return dialogue_node
         return None
 
     def try_add_changed(node, new_text, mode="what"):
@@ -92,6 +96,7 @@ init python in shcs_store:
         
         dialogue_node.to_default()
         changed_dialogue_nodes.discard(dialogue_node)
+        try_update_say_screen(node.ast)
 
     def to_default(node):
         dialogue_node = find_by_node(node)
@@ -99,3 +104,4 @@ init python in shcs_store:
             return
 
         dialogue_node.to_default()
+        try_update_say_screen(node.ast)

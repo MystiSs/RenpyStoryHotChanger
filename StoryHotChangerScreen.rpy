@@ -35,8 +35,49 @@ init python:
         "apply_input": ["K_RETURN", "K_KP_ENTER"],
 
         "clear_input": ["shift_K_z"],
-        "default_input": ["shift_K_a"],
+        "default_input": ["shift_K_a"]
     }
+
+    def shsc_eval_who(who=None):
+        """
+        Получение объекта персонажа используя его кодовое обозначение. Если None, то это narrator (RenPy делает также)
+        """
+
+        if who is None:
+            return narrator
+        return renpy.ast.eval_who(who)
+
+    def shcs_try_update_say_screen(node, screen=None):
+        """
+        Обновляет экран диалогов (экран отображения диалога) с использованием данных из узла диалога.
+
+        Args:
+            node: Узел диалога (обычно объект класса Say).
+            screen: Имя экрана диалогов для обновления. Если не указано, используется значение из объекта персонажа.
+
+        Returns:
+            None
+        """
+
+        if node != renpy.game.context().current:
+            return
+
+        who_instance = shsc_eval_who(who)
+        screen_name = screen or who_instance.screen
+        if renpy.get_screen(screen_name) is None:
+            return
+
+        what = node.what
+        who = node.who
+
+        if what:
+            what_widget = renpy.get_displayable(screen_name, "what")
+            if what_widget:
+                what_widget.set_text(what)
+        if who:
+            who_widget = renpy.get_displayable(screen_name, "who")
+            if who_widget:
+                who_widget.set_text(who_instance)
 
     @renpy.pure
     def shcs_dialogue_shorter(text, max_length=64):

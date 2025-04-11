@@ -26,6 +26,16 @@ init python:
     import builtins
 
 
+    shcs_keymap = {
+        "show_overlay": ["shift_alt_K_p"],
+        "hide_overlay": ["K_ESCAPE", "K_RETURN", "mouseup_3"],
+
+        "hide_input": ["K_ESCAPE"]
+
+        "clear_input": ["shift_K_z"],
+        "default_input": ["shift_K_a"],
+    }
+
     @renpy.pure
     def shcs_dialogue_shorter(text, max_length=64):
         if builtins.len(text) > max_length:
@@ -60,7 +70,7 @@ screen shcs_overlay_hided():
     zorder 1000
     tag shcs_overlay
 
-    key "shift_alt_K_p" action Show("shcs_overlay")
+    key shcs_keymap["show_overlay"] action Show("shcs_overlay")
 
 screen shcs_overlay():
     zorder 1000
@@ -70,7 +80,7 @@ screen shcs_overlay():
     default context = renpy.game.context()
     default next_nodes_depth = 10
 
-    key ["K_ESCAPE", "K_RETURN", "mouseup_3"] action Show("shcs_overlay_hided")
+    key shcs_keymap["hide_overlay"] action Show("shcs_overlay_hided")
 
     add "black" at shcs_overlay_fadein
 
@@ -113,7 +123,6 @@ screen shcs_overlay():
 
             sensitive shcs_store.changed_dialogue_nodes
             action Function(shcs_store.rewrite_files)
-
 
     frame:
         style "shcs_frame_style"
@@ -239,7 +248,11 @@ screen shcs_change_text(node, mode="what"):
     default initial_state = node.what if mode == "what" else node.who
     default safe_string = tools.make_tags_safe(initial_state)
 
-    key "K_ESCAPE" action Hide("shcs_change_text")
+    key config.keymap["skip"] action NullAction()
+
+    key shcs_keymap["hide_input"] action Hide("shcs_change_text")
+    key shcs_keymap["clear_input"] action SetScreenVariable("safe_string", "")
+    key shcs_keymap["default_input"] action SetScreenVariable("safe_string", tools.make_tags_safe(initial_state))
 
     frame:
         style "shcs_frame_style"

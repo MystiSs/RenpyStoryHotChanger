@@ -203,7 +203,7 @@ screen shcs_overlay():
                         hovered Show("shcs_line_as_code", node=current_node_instance)
                         unhovered Hide("shcs_line_as_code")
                         action [Show("shcs_change_text", node=current_node_instance), Hide("shcs_line_as_code")]
-                        alternate [Show("shcs_change_text", node=current_node_instance, mode="who"), Hide("shcs_line_as_code")]
+                        # alternate [Show("shcs_change_text", node=current_node_instance, mode="who"), Hide("shcs_line_as_code")]
 
                     text "Файл: {} | Строка: [current_node_instance.linenumber]".format(current_node_instance.filename.split('/')[-1]):
                         style "shcs_text_other_style"
@@ -228,7 +228,7 @@ screen shcs_overlay():
                                 hovered Show("shcs_line_as_code", node=next_node)
                                 unhovered Hide("shcs_line_as_code")
                                 action [Show("shcs_change_text", node=next_node), Hide("shcs_line_as_code")]
-                                alternate [Show("shcs_change_text", node=next_node, mode="who"), Hide("shcs_line_as_code")]
+                                # alternate [Show("shcs_change_text", node=next_node, mode="who"), Hide("shcs_line_as_code")]
 
                             text "Файл: {} | Строка: [next_node.linenumber]".format(next_node.filename.split('/')[-1]):
                                 style "shcs_text_other_style"
@@ -254,7 +254,8 @@ screen shcs_overlay():
 
                             hovered Show("shcs_line_as_code", node=node.ast)
                             unhovered Hide("shcs_line_as_code")
-                            action [Show("shcs_change_text", node=node.ast, mode="who"), Hide("shcs_line_as_code")]
+                            # action [Show("shcs_change_text", node=node.ast, mode="who"), Hide("shcs_line_as_code")]
+                            action [Show("shcs_change_sayer", node=node.ast), Hide("shcs_line_as_code")]
 
                         textbutton shcs_dialogue_shorter(node.ast.what):
                             style "shcs_textbutton_style"
@@ -289,7 +290,7 @@ screen shcs_overlay():
 
                     text "Файл: {} | Строка: [node.linenumber]".format(node.filename.split('/')[-1]):
                         style "shcs_text_other_style"
-    
+
 screen shcs_change_text(node, mode="what"):
     zorder 1100
     modal True
@@ -325,3 +326,76 @@ screen shcs_change_text(node, mode="what"):
             value ScreenVariableInputValue("safe_string")
             style "shcs_text_style"
             copypaste True    
+
+screen shcs_change_sayer(node, search=""):
+    zorder 1100
+    modal True
+
+    default tools = shcs_store
+    default typed_search = search
+    default page = 0
+
+    default all_chars = tools.get_all_characters()
+    default current_who_tag = node.who if node.who else "narrator"
+    default current_who_name = all_chars[current_who_tag]
+    
+    default filtered_chars = tools.filter_characters(all_chars, search)
+
+    $ chars_per_page = 10
+    $ chars_total = len(filtered_chars)
+    $ total_pages = (chars_total + chars_per_page - 1) // chars_per_page
+
+    $ start_idx = page * chars_per_page
+    $ end_idx = start_idx + chars_per_page
+    $ page_chars = filtered_chars[start_idx:end_idx]
+
+    key shcs_keymap["hide_input"] action Hide("shcs_change_sayer")
+    key shcs_keymap["apply_input"] action [Show("shcs_change_sayer", node=node, search=typed_search)]
+
+    frame:
+        style "shcs_frame_style"
+        xmaximum 960
+        align (0.5, 0.5)
+
+        has vbox
+
+        text "Тэг говорящего: [current_who_tag]" style "shcs_text_other_style"
+        text "Имя говорящего: [current_who_name]" style "shcs_text_other_style"
+        
+        text "Чтобы найти нужного персонажа, введите часть имени (переменной):" style "shcs_text_other_style"
+        add Null(0, 10)
+
+        input:
+            value ScreenVariableInputValue("typed_search")
+            style "shcs_text_style"
+
+        add Null(0, 10)
+
+        if not page_chars:
+            text "Нет совпадений" style "shcs_text_style"
+        else:
+            for char_tag, char_name in page_chars:
+                textbutton char_name + " — " + char_tag:
+                    style "shcs_textbutton_style"
+                    text_style "shcs_text_style"
+                    action [
+                        Function(tools.try_add_changed, node, char_tag, "who"),
+                        Hide("shcs_change_sayer")
+                    ]
+
+            add Null(0, 10)
+            hbox:
+                spacing 20
+                if page > 0:
+                    textbutton "<< Пред. страница":
+                        style "shcs_textbutton_style"
+                        text_style "shcs_text_style"
+                        action SetScreenVariable("page", page - 1)
+
+                if page < total_pages - 1:
+                    textbutton "След. страница >>":
+                        style "shcs_textbutton_style"
+                        text_style "shcs_text_style"
+                        action SetScreenVariable("page", page + 1)
+
+                text "Страница {}/[total_pages]".format(page + 1) style "shcs_text_style"

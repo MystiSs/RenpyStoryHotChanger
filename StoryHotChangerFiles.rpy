@@ -55,7 +55,7 @@ init python in shcs_store:
             create_backup(node.filename, lines)
 
         for node in nodes:
-            lines[node.linenumber - 1] = tabulation[node.linenumber - 1] + node.instance.get_code() + "\n"
+            lines[node.linenumber - 1] = tabulation[node.linenumber - 1] + node.ast.get_code() + "\n"
 
         with open(physical_path, 'w') as file:
             file.writelines(lines)

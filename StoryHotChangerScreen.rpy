@@ -22,6 +22,9 @@ init:
         alpha 0.0
         easein_quad 0.5 alpha 0.05
 
+init 1000:
+    $ config.overlay_screens.append("shcs_overlay_controller")
+
 init python:
     import builtins
 
@@ -113,11 +116,11 @@ screen shcs_line_as_code(node):
 
         text "Код: [code_line]" style "shcs_text_style"
 
-screen shcs_overlay_hided():
+screen shcs_overlay_controller():
     zorder 1000
-    tag shcs_overlay
 
-    key shcs_keymap["show_overlay"] action Show("shcs_overlay")
+    if renpy.get_screen("shcs_overlay") is None:
+        key shcs_keymap["show_overlay"] action Show("shcs_overlay")
 
 screen shcs_overlay():
     zorder 1000
@@ -127,7 +130,7 @@ screen shcs_overlay():
     default context = renpy.game.context()
     default next_nodes_depth = 10
 
-    key shcs_keymap["hide_overlay"] action Show("shcs_overlay_hided")
+    key shcs_keymap["hide_overlay"] action Hide("shcs_overlay")
 
     add "black" at shcs_overlay_fadein
 
@@ -245,21 +248,21 @@ screen shcs_overlay():
                 vbox:
                     hbox:
                         text ">> Изменённый узел: " style "shcs_text_style"
-                        textbutton "[node.instance.who] ":
+                        textbutton "[node.ast.who] ":
                             style "shcs_textbutton_style"
                             text_style "shcs_text_style"
 
-                            hovered Show("shcs_line_as_code", node=node.instance)
+                            hovered Show("shcs_line_as_code", node=node.ast)
                             unhovered Hide("shcs_line_as_code")
-                            action [Show("shcs_change_text", node=node.instance, mode="who"), Hide("shcs_line_as_code")]
+                            action [Show("shcs_change_text", node=node.ast, mode="who"), Hide("shcs_line_as_code")]
 
-                        textbutton shcs_dialogue_shorter(node.instance.what):
+                        textbutton shcs_dialogue_shorter(node.ast.what):
                             style "shcs_textbutton_style"
                             text_style "shcs_text_style"
 
-                            hovered Show("shcs_line_as_code", node=node.instance)
+                            hovered Show("shcs_line_as_code", node=node.ast)
                             unhovered Hide("shcs_line_as_code")
-                            action [Show("shcs_change_text", node=node.instance, mode="what"), Hide("shcs_line_as_code")]
+                            action [Show("shcs_change_text", node=node.ast, mode="what"), Hide("shcs_line_as_code")]
 
                     hbox:
                         textbutton "Сбросить персонажа":

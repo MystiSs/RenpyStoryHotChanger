@@ -68,17 +68,15 @@ init python:
         if node != shcs_get_node(renpy.game.context().current):
             return
 
-        who_instance = shcs_eval_who(who)
+        who_instance = shcs_eval_who(node.who)
         screen_name = screen or who_instance.screen
         if renpy.get_screen(screen_name) is None:
             return
 
-        what = node.what
-        who = node.who
-
         if what is not None:
             what_widget = renpy.get_displayable(screen_name, "what")
             if what_widget:
+                what = node.what
                 what_widget.set_text(what)
         if who_instance is not None:
             who_widget = renpy.get_displayable(screen_name, "who")

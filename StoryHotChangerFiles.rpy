@@ -19,6 +19,19 @@ init python in shcs_store:
         
         return node_lists.values()
 
+    def get_tabulation(lines):
+        tabulation_from_lines = [ ]
+        for line in lines:
+            count = 0
+            for char in line:
+                if char == ' ':
+                    count += 1
+                else:
+                    break
+            tabulation_from_lines.append(' ' * count)
+
+        return tabulation_from_lines
+
     def create_backup(filename, lines):
         physical_path = renpy.loader.get_path(filename).replace("/game", "")
         with open(physical_path + ".bkp", 'w') as file:
@@ -28,6 +41,7 @@ init python in shcs_store:
     def rewrite_file_lines(nodes, backup=True):
         physical_path = renpy.loader.get_path(nodes[0].filename).replace("/game", "")
         lines = [ ]
+        tabulation = get_tabulation(lines)
 
         with open(physical_path, 'r') as file:
             lines = file.readlines()
@@ -40,7 +54,7 @@ init python in shcs_store:
             create_backup(node.filename, lines)
 
         for node in nodes:
-            lines[node.linenumber - 1] = "    " + node.instance.get_code() + "\n"
+            lines[node.linenumber - 1] = tabulation[node.linenumber - 1] + node.instance.get_code() + "\n"
 
         with open(physical_path, 'w') as file:
             file.writelines(lines)

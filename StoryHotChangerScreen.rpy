@@ -80,7 +80,7 @@ init python:
             what_widget = renpy.get_displayable(screen_name, "what")
             if what_widget:
                 what_widget.set_text(what)
-        if who is not None:
+        if who_instance is not None:
             who_widget = renpy.get_displayable(screen_name, "who")
             if who_widget:
                 who_widget.set_text(who_instance)

@@ -41,10 +41,11 @@ init python in shcs_store:
     def rewrite_file_lines(nodes, backup=True):
         physical_path = renpy.loader.get_path(nodes[0].filename).replace("/game", "")
         lines = [ ]
-        tabulation = get_tabulation(lines)
+        tabulation = [ ]
 
         with open(physical_path, 'r') as file:
             lines = file.readlines()
+        tabulation = get_tabulation(lines)
         
         for node in nodes:
             if node.linenumber <= 0 or node.linenumber > len(lines):

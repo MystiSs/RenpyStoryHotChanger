@@ -44,6 +44,9 @@ init python:
 
         Agrs:
             who: Кодовое имя персонажа (название переменной). Возможно, принимает и сам объект, а ast.eval_who() корректно его обработает, но я не уверен.
+
+        Returns:
+            ADVCharacter (Character)
         """
 
         if who is None:
@@ -73,11 +76,11 @@ init python:
         what = node.what
         who = node.who
 
-        if what:
+        if what is not None:
             what_widget = renpy.get_displayable(screen_name, "what")
             if what_widget:
                 what_widget.set_text(what)
-        if who:
+        if who is not None:
             who_widget = renpy.get_displayable(screen_name, "who")
             if who_widget:
                 who_widget.set_text(who_instance)

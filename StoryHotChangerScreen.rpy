@@ -76,7 +76,7 @@ init python:
         if renpy.get_screen(screen_name) is None:
             return
 
-        if what is not None:
+        if node.what is not None:
             what_widget = renpy.get_displayable(screen_name, "what")
             if what_widget:
                 what = node.what

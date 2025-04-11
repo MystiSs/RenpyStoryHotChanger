@@ -105,3 +105,21 @@ init python in shcs_store:
 
         dialogue_node.to_default()
         try_update_say_screen(node.ast)
+
+    def get_all_characters():
+        result = {}
+        for tag, char_obj in vars(renpy.store).items():
+            if isinstance(char_obj, renpy.character.ADVCharacter):
+                result[tag] = str(char_obj)
+        return result
+
+    def sort_char_tags(char_data):
+        return char_data[1].lower()
+
+    def filter_characters(characters, search):
+        chars = []
+        for char_tag, char_name in characters.items():
+            if search.lower() in char_tag.lower():
+                chars.append((char_tag, char_name))
+        chars.sort(key=sort_char_tags)
+        return chars

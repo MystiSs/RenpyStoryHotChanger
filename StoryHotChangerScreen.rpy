@@ -30,7 +30,9 @@ init python:
         "show_overlay": ["shift_alt_K_p"],
         "hide_overlay": ["K_ESCAPE", "K_RETURN", "mouseup_3"],
 
-        "hide_input": ["K_ESCAPE"]
+        "hide_input": ["K_ESCAPE"],
+
+        "apply_input": ["K_RETURN", "K_KP_ENTER"],
 
         "clear_input": ["shift_K_z"],
         "default_input": ["shift_K_a"],
@@ -267,7 +269,7 @@ screen shcs_change_text(node, mode="what"):
         else:
             text "Ошибок не выявлено." style "shcs_text_style" color "#3cbd00"
 
-            key ["K_RETURN", "K_KP_ENTER"] action [Function(tools.try_add_changed, node, safe_string, mode), Hide("shcs_change_text")]
+            key shcs_keymap["apply_input"] action [Function(tools.try_add_changed, node, safe_string, mode), Hide("shcs_change_text")]
 
         add Null(0, 24)
 

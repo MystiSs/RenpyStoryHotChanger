@@ -59,7 +59,7 @@ init python:
             None
         """
 
-        if node != renpy.game.context().current:
+        if node != shcs_get_node(renpy.game.context().current):
             return
 
         who_instance = shsc_eval_who(who)

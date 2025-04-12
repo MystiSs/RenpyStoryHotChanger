@@ -44,6 +44,13 @@ init python:
         "default_input": ["shift_K_a"]
     }
 
+    shcs_excluded_characters_tags = {
+        "_narrator",
+        "name_only",
+        "adv",
+        "nvl"
+    }
+
     def shcs_eval_who(who=None):
         """
         Получение объекта персонажа используя его кодовое обозначение. Если None, то это narrator (RenPy делает также).
@@ -442,7 +449,7 @@ screen shcs_change_sayer(node, search=""):
     $ current_filter_mode = "{color=#3cbd00}Тег{/color}" if filter_mode == "tags" else "{color=#3cbd00}Имя{/color}"
 
     $ chars_per_page = 10
-    $ chars_total = len(filtered_chars)
+    $ chars_total = builtins.len(filtered_chars)
     $ total_pages = (chars_total + chars_per_page - 1) // chars_per_page
 
     $ start_idx = page * chars_per_page

@@ -1,5 +1,6 @@
 init 10 python in shcs_store:
     from renpy.store import shcs_try_update_say_screen as try_update_say_screen
+    from renpy.store import shcs_excluded_characters_tags as excluded_characters_tags
 
 
     changed_dialogue_nodes = set()
@@ -126,5 +127,8 @@ init 10 python in shcs_store:
         for char_tag, char_name in characters.items():
             if search.lower() in char_tag.lower():
                 chars.append((char_tag, char_name))
+
+        chars = [char for char in chars if char[1] not in excluded_characters_tags]
+
         chars.sort(key=sort_char_tags)
         return chars

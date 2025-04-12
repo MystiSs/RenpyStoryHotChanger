@@ -1,4 +1,4 @@
-init python in shcs_store:
+init 10 python in shcs_store:
     from renpy.store import shcs_try_update_say_screen as try_update_say_screen
 
 
@@ -48,6 +48,9 @@ init python in shcs_store:
             text = make_true_tags(text)
 
         error_string = renpy.check_text_tags(text)
+        if error_string:
+            error_string = error_string.decode("unicode-escape")
+
         return (error_string is None, error_string)
 
     def set_text_by_mode(node, new_text, mode):

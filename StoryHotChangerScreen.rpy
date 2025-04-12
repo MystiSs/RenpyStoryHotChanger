@@ -76,18 +76,11 @@ init python:
         if renpy.get_screen(screen_name) is None:
             return
 
-        if node.what is not None:
-            what_widget = renpy.get_displayable(screen_name, "what")
-            if what_widget:
-                what = node.what
-                what_widget.set_text(what)
-        if who_instance is not None:
-            who_widget = renpy.get_displayable(screen_name, "who")
-            if who_widget:
-                who_widget.set_text(who_instance)
+        renpy.say(who_instance, node.what, interact=False)
 
     @renpy.pure
     def shcs_dialogue_shorter(text, max_length=64):
+        text = shcs_store.make_tags_safe(text)
         if builtins.len(text) > max_length:
             return text[:max_length] + "..."
         return text
@@ -105,16 +98,41 @@ init python:
         
         return current_node
 
+    #<В RenPy 7.4.11 ещё нет renpy.set_screen_variable()>#
+    def shcs_set_screen_variable(screen, variable, value):
+        screen_instance = renpy.get_screen(screen)
+        if screen_instance is None:
+            return
+        screen_instance.scope[variable] = value
+
 screen shcs_line_as_code(node):
     zorder 1100
-
-    $ code_line = node.get_code()
 
     frame:
         style "shcs_frame_style"
         align (1.0, 0.0)
+        offset (-5, 12)
 
-        text "Код: [code_line]" style "shcs_text_style"
+        has vbox
+
+        text "Предпросмотр реплики" style "shcs_text_other_style"
+        if node:
+            $ code_line = node.get_code()
+            $ code_line_raw = shcs_store.make_tags_safe(node.get_code())
+
+            text "Код: [code_line_raw]" style "shcs_text_other_style"
+            text "С тегами: [code_line]" style "shcs_text_other_style"
+        else:
+            text "-" style "shcs_text_other_style"
+
+screen shcs_node_path(node):
+    zorder 1000
+
+    frame:
+        style "shcs_frame_style"
+        xoffset 48
+
+        add Null()
 
 screen shcs_overlay_controller():
     zorder 1000
@@ -130,9 +148,13 @@ screen shcs_overlay():
     default context = renpy.game.context()
     default next_nodes_depth = 10
 
+    default hovered_node = None
+
     key shcs_keymap["hide_overlay"] action Hide("shcs_overlay")
 
     add "black" at shcs_overlay_fadein
+
+    use shcs_line_as_code(hovered_node)
 
     frame:
         style "shcs_frame_style"
@@ -165,6 +187,20 @@ screen shcs_overlay():
                 style "shcs_text_other_style"
                 xmaximum 240
 
+        hbox:
+            textbutton "Режим \"из лаунчера\": ":
+                style "shcs_textbutton_style"
+                text_style "shcs_text_style"
+            
+                action ToggleField(shcs_store, "enable_from_launcher_mode")
+
+            text "{}".format("{color=#3cbd00}Да{/color}" if shcs_store.enable_from_launcher_mode else "{color=#af0000}Нет{/color}") style "shcs_text_style"
+        
+        if shcs_store.enable_from_launcher_mode:
+            text "Режим \"из лаунчера\" необходим для того, чтобы файлы сохранялись не в папку лаунчера RenPy, а в папку проекта. Если вы не используете лаунчер RenPy, данная опция {b}должна{/b} быть выключена.":
+                style "shcs_text_other_style"
+                xmaximum 240
+
         add Null(0, 12)
 
         textbutton "Сохранить изменения":
@@ -173,16 +209,39 @@ screen shcs_overlay():
 
             sensitive shcs_store.changed_dialogue_nodes
             action Function(shcs_store.rewrite_files)
+        
+        textbutton "Перезагрузить скрипт":
+            style "shcs_textbutton_style"
+            text_style "shcs_text_style"
 
-    frame:
-        style "shcs_frame_style"
-
-        has vbox
-        text "Текущий узел: [context.current]" style "shcs_text_style"
+            action Function(renpy.reload_script)
 
     vbox:
-        yoffset 48
-        spacing 12
+        yoffset 6
+        spacing 6
+
+        frame:
+            style "shcs_frame_style"
+
+            has vbox
+            text "Текущий узел: [context.current]" style "shcs_text_style"
+
+        frame:
+            style "shcs_frame_style"
+
+            has vbox
+
+            hbox:
+                text "Путь до файла: ":
+                    style "shcs_text_other_style"
+
+                if hovered_node:
+                    text "{}".format(shcs_store.get_node_filepath(hovered_node)) style "shcs_text_other_style"
+                else:
+                    text "-" style "shcs_text_other_style"
+
+            if shcs_store.enable_from_launcher_mode:
+                text "{i}Режим из лаунчера{/i}" style "shcs_text_other_style"
 
         frame:
             style "shcs_frame_style"
@@ -200,16 +259,15 @@ screen shcs_overlay():
                         style "shcs_textbutton_style"
                         text_style "shcs_text_style"
 
-                        hovered Show("shcs_line_as_code", node=current_node_instance)
-                        unhovered Hide("shcs_line_as_code")
-                        action [Show("shcs_change_text", node=current_node_instance), Hide("shcs_line_as_code")]
-                        # alternate [Show("shcs_change_text", node=current_node_instance, mode="who"), Hide("shcs_line_as_code")]
+                        hovered [SetScreenVariable("hovered_node", current_node_instance)]
+                        unhovered [SetScreenVariable("hovered_node", None)]
+                        action [Show("shcs_change_text", node=current_node_instance)]
 
                     text "Файл: {} | Строка: [current_node_instance.linenumber]".format(current_node_instance.filename.split('/')[-1]):
                         style "shcs_text_other_style"
 
             add Null(0, 24)
-            text "Следующие <Say> узлы | Глубина поиска: [next_nodes_depth]" style "shcs_text_style"
+            text "Следующие <Say> узлы | Глубина поиска: [next_nodes_depth]" style "shcs_text_other_style"
             add Null(0, 24)
 
             if context.current:
@@ -225,10 +283,9 @@ screen shcs_overlay():
                                 style "shcs_textbutton_style"
                                 text_style "shcs_text_style"
 
-                                hovered Show("shcs_line_as_code", node=next_node)
-                                unhovered Hide("shcs_line_as_code")
-                                action [Show("shcs_change_text", node=next_node), Hide("shcs_line_as_code")]
-                                # alternate [Show("shcs_change_text", node=next_node, mode="who"), Hide("shcs_line_as_code")]
+                                hovered [SetScreenVariable("hovered_node", next_node)]
+                                unhovered [SetScreenVariable("hovered_node", None)]
+                                action [Show("shcs_change_text", node=next_node)]
 
                             text "Файл: {} | Строка: [next_node.linenumber]".format(next_node.filename.split('/')[-1]):
                                 style "shcs_text_other_style"
@@ -252,17 +309,17 @@ screen shcs_overlay():
                             style "shcs_textbutton_style"
                             text_style "shcs_text_style"
 
-                            hovered Show("shcs_line_as_code", node=node.ast)
-                            unhovered Hide("shcs_line_as_code")
-                            action [Show("shcs_change_sayer", node=node.ast), Hide("shcs_line_as_code")]
+                            hovered [SetScreenVariable("hovered_node", node.ast)]
+                            unhovered [SetScreenVariable("hovered_node", None)]
+                            action [Show("shcs_change_sayer", node=node.ast)]
 
                         textbutton shcs_dialogue_shorter(node.ast.what):
                             style "shcs_textbutton_style"
                             text_style "shcs_text_style"
 
-                            hovered Show("shcs_line_as_code", node=node.ast)
-                            unhovered Hide("shcs_line_as_code")
-                            action [Show("shcs_change_text", node=node.ast, mode="what"), Hide("shcs_line_as_code")]
+                            hovered [SetScreenVariable("hovered_node", node.ast)]
+                            unhovered [SetScreenVariable("hovered_node", None)]
+                            action [Show("shcs_change_text", node=node.ast, mode="what")]
 
                     hbox:
                         textbutton "Сбросить персонажа":
@@ -298,6 +355,8 @@ screen shcs_change_text(node, mode="what"):
     default initial_state = node.what if mode == "what" else node.who
     default safe_string = tools.make_tags_safe(initial_state)
 
+    default tags_info_enabled = False
+
     key config.keymap["skip"] action NullAction()
 
     key shcs_keymap["hide_input"] action Hide("shcs_change_text")
@@ -307,24 +366,42 @@ screen shcs_change_text(node, mode="what"):
     frame:
         style "shcs_frame_style"
         xmaximum 960
-        align (0.5, 0.5)
+        align (0.5, 0.0)
+        ypos 0.4
 
         has vbox
 
-        $ tags_check_result = tools.is_tags_correct(safe_string, True)
-        if not tags_check_result[0]:
-            text "Неправильные теги: {}".format(tools.make_tags_safe(tags_check_result[1])) style "shcs_text_style" color "#af0000"
-        else:
-            text "Ошибок не выявлено." style "shcs_text_style" color "#3cbd00"
+        hbox:
+            xalign 0.5
 
-            key shcs_keymap["apply_input"] action [Function(tools.try_add_changed, node, safe_string, mode), Hide("shcs_change_text")]
+            $ tags_check_result = tools.is_tags_correct(safe_string, True)
+            if not tags_check_result[0]:
+                text "Неправильные теги: {}".format(tools.make_tags_safe(tags_check_result[1])) style "shcs_text_style" color "#af0000" xalign 0.5
+            else:
+                text "Ошибок не выявлено." style "shcs_text_style" color "#3cbd00" xalign 0.5
+
+                key shcs_keymap["apply_input"] action [Function(tools.try_add_changed, node, tools.make_true_tags(safe_string), mode),
+                                                        Hide("shcs_change_text"),
+                                                        Function(shcs_set_screen_variable, "shcs_overlay", "hovered_node", None)]
+            
+            textbutton " | {u}Как выставлять теги{/u}":
+                style "shcs_textbutton_style"
+                text_style "shcs_text_style"
+
+                hovered SetScreenVariable("tags_info_enabled", True)
+                unhovered SetScreenVariable("tags_info_enabled", False)
+                action NullAction()
+        
+        if tags_info_enabled:
+            text "Рекомендуется для тегов использовать символы \"<\" \">\"." style "shcs_text_other_style" xalign 0.5
 
         add Null(0, 24)
 
         input:
+            xalign 0.5
             value ScreenVariableInputValue("safe_string")
             style "shcs_text_style"
-            copypaste True    
+            copypaste True
 
 screen shcs_change_sayer(node, search=""):
     zorder 1100

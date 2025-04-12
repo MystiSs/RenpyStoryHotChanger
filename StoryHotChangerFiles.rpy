@@ -1,6 +1,20 @@
-init python in shcs_store:
+init 10 python in shcs_store:
+    import os
+
+
     enable_backup = True
     enable_force_reload = False
+    enable_from_launcher_mode = False
+
+    @renpy.pure
+    def get_node_filepath(node):
+        if node is None:
+            return None
+        
+        if enable_from_launcher_mode:
+            return renpy.str(renpy.loader.get_path(node.filename).replace("/game", "")).replace('/', '\\')
+
+        return renpy.str(os.path.abspath(node.filename))
 
     #<Избегаю потенциальную проблему с сериализацией (чтобы RenPy не улетал с трейсбеком из-за cPickle)>#
     def get_node_linenumber(node):
@@ -39,7 +53,7 @@ init python in shcs_store:
             file.writelines(lines)
 
     def rewrite_file_lines(nodes, backup=True):
-        physical_path = renpy.loader.get_path(nodes[0].filename).replace("/game", "")
+        physical_path = get_node_filepath(nodes[0])
         lines = [ ]
         tabulation = [ ]
 

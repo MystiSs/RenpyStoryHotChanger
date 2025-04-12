@@ -88,7 +88,9 @@ init 10 python in shcs_store:
         if is_text_equal(dialogue_node, new_text, mode):
             return
 
-        set_text_by_mode(dialogue_node, make_true_tags(new_text), mode)
+        if mode == "what":
+            new_text = make_true_tags(new_text)
+        set_text_by_mode(dialogue_node, new_text, mode)
 
         changed_dialogue_nodes.add(dialogue_node)
 

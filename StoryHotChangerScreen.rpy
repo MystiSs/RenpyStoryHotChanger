@@ -15,6 +15,9 @@ init:
     style shcs_text_other_style is shcs_text_style:
         color "#ffffffa9"
 
+    style shcs_text_other_light_style is shcs_text_style:
+        color "#ffffff"
+
     style shcs_textbutton_style is shcs_text_style:
         background None
 
@@ -246,25 +249,33 @@ screen shcs_overlay():
         frame:
             style "shcs_frame_style"
 
-            has vbox:
-                first_spacing 10
+            has vbox
             
             $ current_node_instance = shcs_get_node(context.current)
             if not isinstance(current_node_instance, renpy.ast.Say):
                 text "Текущий узел не реплика" style "shcs_text_style"
                 text "Тип текущего узла: {}".format(builtins.type(shcs_get_node(current_node_instance))) style "shcs_text_style"
             else:
-                vbox:
-                    textbutton ">> Текущий узел с репликой: {}".format(shcs_dialogue_shorter(current_node_instance.what)):
+                hbox:
+                    text ">> Текущий узел с репликой: " style "shcs_text_other_light_style"
+                    textbutton "[current_node_instance.who]":
                         style "shcs_textbutton_style"
                         text_style "shcs_text_style"
 
-                        hovered [SetScreenVariable("hovered_node", current_node_instance)]
-                        unhovered [SetScreenVariable("hovered_node", None)]
-                        action [Show("shcs_change_text", node=current_node_instance)]
+                        hovered SetScreenVariable("hovered_node", current_node_instance)
+                        unhovered SetScreenVariable("hovered_node", None)
+                        action Show("shcs_change_sayer", node=current_node_instance)
 
-                    text "Файл: {} | Строка: [current_node_instance.linenumber]".format(current_node_instance.filename.split('/')[-1]):
-                        style "shcs_text_other_style"
+                    textbutton " {}".format(shcs_dialogue_shorter(current_node_instance.what)):
+                        style "shcs_textbutton_style"
+                        text_style "shcs_text_style"
+
+                        hovered SetScreenVariable("hovered_node", current_node_instance)
+                        unhovered SetScreenVariable("hovered_node", None)
+                        action Show("shcs_change_text", node=current_node_instance)
+
+                text "Файл: {} | Строка: [current_node_instance.linenumber]".format(current_node_instance.filename.split('/')[-1]):
+                    style "shcs_text_other_style"
 
             add Null(0, 24)
             text "Следующие <Say> узлы | Глубина поиска: [next_nodes_depth]" style "shcs_text_other_style"
@@ -278,17 +289,26 @@ screen shcs_overlay():
                         pass
 
                     elif isinstance(next_node, renpy.ast.Say):
-                        vbox:
-                            textbutton ">> Узел с репликой {}: {} {}".format(idx + 1, next_node.who, shcs_dialogue_shorter(next_node.what)):
+                        hbox:
+                            text ">> Узел с репликой: " style "shcs_text_other_light_style"
+                            textbutton "[next_node.who]":
                                 style "shcs_textbutton_style"
                                 text_style "shcs_text_style"
 
-                                hovered [SetScreenVariable("hovered_node", next_node)]
-                                unhovered [SetScreenVariable("hovered_node", None)]
-                                action [Show("shcs_change_text", node=next_node)]
+                                hovered SetScreenVariable("hovered_node", next_node)
+                                unhovered SetScreenVariable("hovered_node", None)
+                                action Show("shcs_change_sayer", node=next_node)
 
-                            text "Файл: {} | Строка: [next_node.linenumber]".format(next_node.filename.split('/')[-1]):
-                                style "shcs_text_other_style"
+                            textbutton " {}".format(shcs_dialogue_shorter(next_node.what)):
+                                style "shcs_textbutton_style"
+                                text_style "shcs_text_style"
+
+                                hovered SetScreenVariable("hovered_node", next_node)
+                                unhovered SetScreenVariable("hovered_node", None)
+                                action Show("shcs_change_text", node=next_node)
+
+                        text "Файл: {} | Строка: [next_node.linenumber]".format(next_node.filename.split('/')[-1]):
+                            style "shcs_text_other_style"
         
         frame:
             style "shcs_frame_style"
@@ -462,7 +482,7 @@ screen shcs_change_sayer(node, search=""):
                     style "shcs_textbutton_style"
                     text_style "shcs_text_style"
                     action [
-                        Function(tools.try_add_changed, node, char_tag, "who"),
+                        Function(tools.try_add_changed, node, char_tag if char_tag != "narrator" else None, "who"),
                         Hide("shcs_change_sayer")
                     ]
 

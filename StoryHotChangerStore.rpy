@@ -155,23 +155,37 @@ init 10 python in shcs_store:
         dialogue_node.to_default()
         try_update_say_screen(node.ast)
 
+    class GameCharacter:
+        def __init__(self, tag, name):
+            self.tag = tag
+            self.name = name
+
     def get_all_characters():
-        result = {}
+        result = []
         for tag, char_obj in vars(renpy.store).items():
             if isinstance(char_obj, renpy.character.ADVCharacter):
-                result[tag] = str(char_obj)
+                result.append(GameCharacter(tag, str(char_obj)))
         return result
 
     def sort_char_tags(char_data):
-        return char_data[1].lower()
+        return char_data.name.lower()
 
-    def filter_characters(characters, search):
-        chars = []
-        for char_tag, char_name in characters.items():
-            if search.lower() in char_tag.lower():
-                chars.append((char_tag, char_name))
+    def filter_characters(characters, search, filter_mode):
+        if filter_mode == "names":
+            chars = [
+                char for char in characters
+                if search.lower() in char.name.lower()
+            ]
+        else:
+            chars = [
+                char for char in characters
+                if search.lower() in char.tag.lower()
+            ]
 
-        chars = [char for char in chars if char[1] not in excluded_characters_tags]
-
+        chars = [char for char in chars if char.name not in excluded_characters_tags]
         chars.sort(key=sort_char_tags)
+
         return chars
+
+    def get_char_name(all_chars, who_tag):
+        return next(char.name for char in all_chars if char.tag == who_tag)

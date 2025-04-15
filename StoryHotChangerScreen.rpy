@@ -294,7 +294,8 @@ screen shcs_overlay():
                 for node_data in say_nodes_data:
                     $ node_type = node_data[0]
                     $ node_instance = node_data[1]
-                    $ node_if_condition = None if builtins.len(node_data) < 3 else node_data[2]
+                    $ node_if_condition = None if node_data[0] != "FROM_IF" else node_data[2]
+                    $ node_if_condition_nesting = None if node_data[0] != "FROM_IF" else node_data[3]
 
                     hbox:
                         text ">> Узел с репликой: " style "shcs_text_other_light_style"
@@ -315,7 +316,8 @@ screen shcs_overlay():
                             action Show("shcs_change_text", node=node_instance)
 
                     if node_type == "FROM_IF":
-                        text "{i}Узел из {b}IF{/b} блока{/i}. Условие: [node_if_condition]" style "shcs_text_other_style"
+                        text "{i}Узел из {b}IF{/b} блока{/i} | Условие: [node_if_condition] | Уровень вложенности: [node_if_condition_nesting]":
+                            style "shcs_text_other_style"
 
                     text "Файл: {} | Строка: [node_instance.linenumber]".format(node_instance.filename.split('/')[-1]):
                         style "shcs_text_other_style"

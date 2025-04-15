@@ -20,7 +20,7 @@ init 10 python in shcs_store:
 
     def get_say_nodes(from_node, depth=10, if_depth=10):
         #<Шаблон: Кортеж (тип, узел), где тип "RAW" или "FROM_IF" (на данный момент)>#
-        #<Если "FRON_IF, то добавляется ещё один элемент в кортеж: условие">#
+        #<Если "FRON_IF, то добавляется ещё два элемента в кортеж: условие, вложенность">#
         say_nodes_data = [ ]
 
         #<Избегание дублирования (на всякий случай)>#
@@ -44,7 +44,7 @@ init 10 python in shcs_store:
                     if node_data[1] in seen_say_nodes:
                         continue
 
-                    say_nodes_data.append(("FROM_IF", node_data[1], node_data[0]))
+                    say_nodes_data.append(("FROM_IF", node_data[1], node_data[0], node_data[2]))
                     seen_say_nodes.add(node_data[1])
             
             next_node = next_node.next
@@ -54,11 +54,11 @@ init 10 python in shcs_store:
     def get_say_nodes_from_translate_node(translate_node):
         return [node for node in translate_node.block if isinstance(node, renpy.ast.Say)]
 
-    def _add_say_node_with_condition(say_nodes, condition, node):
-        say_nodes.append((condition, node))
+    def _add_say_node_with_condition(say_nodes, condition, node, nesting):
+        say_nodes.append((condition, node, nesting))
 
-    def get_say_nodes_from_if_node(if_node, if_depth=10):
-        say_nodes = [ ] #<Шаблон: Кортеж (условие, узел)>#
+    def get_say_nodes_from_if_node(if_node, if_depth=10, nesting=1):
+        say_nodes = [ ] #<Шаблон: Кортеж (условие, узел, вложенность)>#
 
         for idx, entry in enumerate(if_node.entries):
             if idx > if_depth:
@@ -67,17 +67,21 @@ init 10 python in shcs_store:
             condition, node_list = entry
 
             for node in node_list:
-                if isinstance(node, renpy.ast.Translate):
+                if isinstance(node, renpy.ast.If):
+                    nesitng_if_data = get_say_nodes_from_if_node(node, if_depth, nesting + 1)
+                    say_nodes.extend(nesitng_if_data)
+
+                elif isinstance(node, renpy.ast.Translate):
                     say_nodes_from_translate = get_say_nodes_from_translate_node(node)
                     for say_node in say_nodes_from_translate:
-                        _add_say_node_with_condition(say_nodes, condition, say_node)
+                        _add_say_node_with_condition(say_nodes, condition, say_node, nesting)
 
                 elif isinstance(node, renpy.ast.Say):
-                    _add_say_node_with_condition(say_nodes, condition, node)
+                    _add_say_node_with_condition(say_nodes, condition, node, nesting)
 
         #<Блок else помечается как If с условием True>#
-        if say_nodes[-1][0] == "True":
-            say_nodes[-1] = ("ELSE", say_nodes[-1][1])
+        if len(say_nodes) > 1 and say_nodes[-1][0] == "True":
+            say_nodes[-1] = ("ELSE", say_nodes[-1][1], say_nodes[-1][2])
 
         return say_nodes
 

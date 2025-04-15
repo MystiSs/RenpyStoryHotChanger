@@ -5,38 +5,81 @@ init 10 python in shcs_store:
 
     changed_dialogue_nodes = set()
 
-    class DialogueNode:
-        def __init__(self, node):
-            self.ast = node
+    def get_nodes(from_node, depth=15):
+        nodes = []
+        next_node = from_node.next
 
-            self.who = node.who
-            self.what = node.what
+        for i in range(depth):
+            if next_node is None:
+                return nodes
 
-            self.old_who = self.who[:] if self.who else None
-            self.old_what = self.what[:]
+            nodes.append(next_node)
+            next_node = next_node.next
+        
+        return nodes
 
-            self.filename = node.filename
-            self.linenumber = node.linenumber
+    def get_say_nodes(from_node, depth=10, if_depth=10):
+        #<Шаблон: Кортеж (тип, узел), где тип "RAW" или "FROM_IF" (на данный момент)>#
+        #<Если "FRON_IF, то добавляется ещё один элемент в кортеж: условие">#
+        say_nodes_data = [ ]
 
-        def replace_in_ast(self):
-            self.ast.who = self.who
-            self.ast.what = self.what
+        #<Избегание дублирования (на всякий случай)>#
+        seen_say_nodes = set()
 
-        def to_default(self):
-            self.who = self.old_who
-            self.what = self.old_what
-            self.replace_in_ast()
+        next_node = from_node.next
+        for i in range(depth):
+            if next_node is None:
+                return say_nodes_data
+            
+            if isinstance(next_node, renpy.ast.Say):
+                if next_node in seen_say_nodes:
+                    continue
 
-        def to_default_who(self):
-            self.who = self.old_who
-            self.replace_in_ast()
+                say_nodes_data.append(("RAW", next_node))
+                seen_say_nodes.add(next_node)
+            
+            elif isinstance(next_node, renpy.ast.If):
+                if_say_nodes_data = get_say_nodes_from_if_node(next_node)
+                for node_data in if_say_nodes_data:
+                    if node_data[1] in seen_say_nodes:
+                        continue
 
-        def to_default_what(self):
-            self.what = self.old_what
-            self.replace_in_ast()
+                    say_nodes_data.append(("FROM_IF", node_data[1], node_data[0]))
+                    seen_say_nodes.add(node_data[1])
+            
+            next_node = next_node.next
 
-        def __eq__(self, other):
-            return self.filename == other.filename and self.linenumber == other.linenumber and self.who == other.who
+        return say_nodes_data
+
+    def get_say_nodes_from_translate_node(translate_node):
+        return [node for node in translate_node.block if isinstance(node, renpy.ast.Say)]
+
+    def _add_say_node_with_condition(say_nodes, condition, node):
+        say_nodes.append((condition, node))
+
+    def get_say_nodes_from_if_node(if_node, if_depth=10):
+        say_nodes = [ ] #<Шаблон: Кортеж (условие, узел)>#
+
+        for idx, entry in enumerate(if_node.entries):
+            if idx > if_depth:
+                break
+            
+            condition, node_list = entry
+
+            for node in node_list:
+                if isinstance(node, renpy.ast.Translate):
+                    say_nodes_from_translate = get_say_nodes_from_translate_node(node)
+                    for say_node in say_nodes_from_translate:
+                        _add_say_node_with_condition(say_nodes, condition, say_node)
+
+                elif isinstance(node, renpy.ast.Say):
+                    _add_say_node_with_condition(say_nodes, condition, node)
+
+        #<Блок else помечается как If с условием True>#
+        if say_nodes[-1][0] == "True":
+            say_nodes[-1] = ("ELSE", say_nodes[-1][1])
+
+        return say_nodes
 
     def make_tags_safe(text):
         return text.replace('{', '<').replace('}', '>')

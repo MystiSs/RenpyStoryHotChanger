@@ -435,7 +435,7 @@ screen shcs_change_text(node, mode="what"):
             style "shcs_text_style"
             copypaste True
 
-screen shcs_change_sayer(node, search=""):
+screen shcs_change_sayer(node, search="", mode="tags"):
     zorder 1100
     modal True
 
@@ -445,13 +445,13 @@ screen shcs_change_sayer(node, search=""):
 
     default all_chars = tools.get_all_characters()
     default current_who_tag = node.who if node.who else "narrator"
-    default current_who_name = all_chars[current_who_tag]
+    default current_who_name = tools.get_char_name(all_chars, current_who_tag)
     
-    default filtered_chars = tools.filter_characters(all_chars, search)
-
     #TODO: Возможно, стоит вынести режим фильтрации вне экрана, чтобы состояние сохранялось#
-    default filter_mode = "tags"
-    $ current_filter_mode = "{color=#3cbd00}Тег{/color}" if filter_mode == "tags" else "{color=#3cbd00}Имя{/color}"
+    default filter_mode = mode
+    default filtered_chars = tools.filter_characters(all_chars, search, filter_mode)
+    
+    $ current_filter_mode = "{color=#3cbd00}Тег{/color}" if filter_mode == "tags" else "{color=#ffff00}Имя{/color}"
 
     $ chars_per_page = 10
     $ chars_total = builtins.len(filtered_chars)
@@ -462,7 +462,14 @@ screen shcs_change_sayer(node, search=""):
     $ page_chars = filtered_chars[start_idx:end_idx]
 
     key shcs_keymap["hide_input"] action Hide("shcs_change_sayer")
-    key shcs_keymap["apply_input"] action [Show("shcs_change_sayer", node=node, search=typed_search)]
+    key shcs_keymap["apply_input"] action [
+        Show(
+            "shcs_change_sayer",
+            node=node,
+            search=typed_search,
+            mode=filter_mode
+        )
+    ]
 
     frame:
         style "shcs_frame_style"
@@ -474,7 +481,18 @@ screen shcs_change_sayer(node, search=""):
         text "Тэг говорящего: [current_who_tag]" style "shcs_text_other_style"
         text "Имя говорящего: [current_who_name]" style "shcs_text_other_style"
         
-        text "Режим фильтрации: [current_filter_mode]" style "shcs_text_other_style"
+        hbox:
+            spacing 10
+            text "Режим фильтрации: [current_filter_mode]" style "shcs_text_other_style"
+            textbutton "Сменить режим":
+                style "shcs_textbutton_style"
+                text_style "shcs_text_style"
+                action If(
+                    (filter_mode == "tags"),
+                    SetScreenVariable("filter_mode", "names"),
+                    SetScreenVariable("filter_mode", "tags")
+                )
+
         text "Чтобы найти нужного персонажа, введите часть {}:".format("его тега (переменной)" if filter_mode == "tags" else "его имени"):
             style "shcs_text_other_style"
 
@@ -489,12 +507,17 @@ screen shcs_change_sayer(node, search=""):
         if not page_chars:
             text "Нет совпадений" style "shcs_text_style"
         else:
-            for char_tag, char_name in page_chars:
-                textbutton char_name + " — " + char_tag:
+            for char in page_chars:
+                textbutton char.name + " — " + char.tag:
                     style "shcs_textbutton_style"
                     text_style "shcs_text_style"
                     action [
-                        Function(tools.try_add_changed, node, char_tag if char_tag != "narrator" else None, "who"),
+                        Function(
+                            tools.try_add_changed,
+                            node,
+                            char.tag if char.tag != "narrator" else None,
+                            "who"
+                        ),
                         Hide("shcs_change_sayer")
                     ]
 

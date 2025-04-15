@@ -68,8 +68,6 @@
 - Both if and menu blocks are recursively searched, e.g.:
 
 ```renpy
-Копировать
-Редактировать
 menu:
     "What to do?":
         "Go left":

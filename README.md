@@ -1,6 +1,6 @@
 # 💬 RenpyStoryHotChanger
-> 🈯 Интерактивный инструмент для горячего редактирования реплик в Ren'Py  
-> 🌍 Interactive dialogue editor tool for Ren'Py games
+> Интерактивный инструмент для горячего редактирования реплик в Ren'Py  
+> Interactive dialogue editor tool for Ren'Py games
 
 ---
 

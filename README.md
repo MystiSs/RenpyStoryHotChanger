@@ -57,13 +57,13 @@
 
 ### 🚀 Features
 
-✅ Finds all types of dialogue (Say) nodes:
+✅ Finds all types of dialogue (`Say`) nodes:
 
-- Basic (RAW) – lines at the root level of a label block
+- Basic (`RAW`) – lines at the root level of a label block
 
-- Inside if blocks (FROM_IF)
+- Inside if blocks (`FROM_IF`)
 
-- Inside menu choices (FROM_MENU)
+- Inside menu choices (`FROM_MENU`)
 
 - Both if and menu blocks are recursively searched, e.g.:
 
@@ -82,7 +82,7 @@ The tool will detect both: "It's pitch dark.", "It's sunny outside."
 
 ✅ Context-aware search:
 
-- Stores info about conditions (if) and dialogue nesting level
+- Stores info about conditions (`if`) and dialogue nesting level
 
 ✅ Visual editor:
 

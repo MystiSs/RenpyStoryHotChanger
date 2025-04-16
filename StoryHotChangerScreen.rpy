@@ -156,7 +156,7 @@ screen shcs_overlay():
     modal True
 
     default context = renpy.game.context()
-    default next_nodes_depth = 10
+    default next_nodes_depth = shcs_store.SEARCH_DEPTH
 
     default hovered_node = None
 
@@ -289,13 +289,11 @@ screen shcs_overlay():
             add Null(0, 24)
 
             if context.current:
-                $ say_nodes_data = shcs_store.get_say_nodes(shcs_get_node(context.current))
+                default say_nodes_data = shcs_store.get_say_nodes(shcs_get_node(context.current))
 
                 for node_data in say_nodes_data:
                     $ node_type = node_data[0]
                     $ node_instance = node_data[1]
-                    $ node_if_condition = None if node_data[0] != "FROM_IF" else node_data[2]
-                    $ node_if_condition_nesting = None if node_data[0] != "FROM_IF" else node_data[3]
 
                     hbox:
                         text ">> Узел с репликой: " style "shcs_text_other_light_style"
@@ -316,7 +314,16 @@ screen shcs_overlay():
                             action Show("shcs_change_text", node=node_instance)
 
                     if node_type == "FROM_IF":
+                        $ node_if_condition = node_data[2]
+                        $ node_if_condition_nesting = node_data[3]
                         text "{i}Узел из {b}IF{/b} блока{/i} | Условие: [node_if_condition] | Уровень вложенности: [node_if_condition_nesting]":
+                            style "shcs_text_other_style"
+
+                    if node_type == "FROM_MENU":
+                        $ node_menu_label = node_data[2]
+                        $ node_menu_nesting = node_data[3]
+                        $ node_menu_condition = node_data[4]
+                        text "{i}Узел из {b}MENU{/b} блока{/i} | Выбор: [node_menu_label] | Уровень вложенности: [node_menu_nesting] | Условия выбора: [node_menu_condition]":
                             style "shcs_text_other_style"
 
                     text "Файл: {} | Строка: [node_instance.linenumber]".format(node_instance.filename.split('/')[-1]):

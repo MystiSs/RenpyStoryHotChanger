@@ -3,31 +3,23 @@ init 10 python in shcs_store:
     from renpy.store import shcs_excluded_characters_tags as excluded_characters_tags
 
 
+    SEARCH_DEPTH = 10
+    IF_SEARCH_DEPTH = 10
+    MENU_SEARCH_DEPTH = 10
+
     changed_dialogue_nodes = set()
 
-    def get_nodes(from_node, depth=15):
-        nodes = []
-        next_node = from_node.next
-
-        for i in range(depth):
-            if next_node is None:
-                return nodes
-
-            nodes.append(next_node)
-            next_node = next_node.next
-        
-        return nodes
-
-    def get_say_nodes(from_node, depth=10, if_depth=10):
-        #<Шаблон: Кортеж (тип, узел), где тип "RAW" или "FROM_IF" (на данный момент)>#
-        #<Если "FRON_IF, то добавляется ещё два элемента в кортеж: условие, вложенность">#
+    def get_say_nodes(from_node):
+        #<Шаблон: Кортеж (тип, узел), где тип "RAW", "FROM_IF" или "FROM_MENU">#
+        #<Если "FROM_IF, то добавляется ещё два элемента в кортеж: условие, вложенность">#
+        #<Если "FROM_MENU, то добавляется ещё три элемента в кортеж: выбор, вложенность, условие (если есть, иначе None)">#
         say_nodes_data = [ ]
 
         #<Избегание дублирования (на всякий случай)>#
         seen_say_nodes = set()
 
         next_node = from_node.next
-        for i in range(depth):
+        for i in range(SEARCH_DEPTH):
             if next_node is None:
                 return say_nodes_data
             
@@ -39,12 +31,21 @@ init 10 python in shcs_store:
                 seen_say_nodes.add(next_node)
             
             elif isinstance(next_node, renpy.ast.If):
-                if_say_nodes_data = get_say_nodes_from_if_node(next_node)
+                if_say_nodes_data = get_say_nodes_from_if_node(next_node, IF_SEARCH_DEPTH)
                 for node_data in if_say_nodes_data:
                     if node_data[1] in seen_say_nodes:
                         continue
 
                     say_nodes_data.append(("FROM_IF", node_data[1], node_data[0], node_data[2]))
+                    seen_say_nodes.add(node_data[1])
+
+            elif isinstance(next_node, renpy.ast.Menu):
+                menu_say_nodes_data = get_say_nodes_from_menu_node(next_node, MENU_SEARCH_DEPTH)
+                for node_data in menu_say_nodes_data:
+                    if node_data[1] in seen_say_nodes:
+                        continue
+                    
+                    say_nodes_data.append(("FROM_MENU", node_data[1], node_data[0], node_data[2], node_data[3]))
                     seen_say_nodes.add(node_data[1])
             
             next_node = next_node.next
@@ -53,6 +54,44 @@ init 10 python in shcs_store:
 
     def get_say_nodes_from_translate_node(translate_node):
         return [node for node in translate_node.block if isinstance(node, renpy.ast.Say)]
+
+    def get_say_nodes_from_menu_subblock(node_list, nesting=1):
+        """
+            Возвращает список Say узлов из условного суб-блока узла Menu (имеется ввиду блок под выбором)
+            Вложенность будет сквозной (независимо if блок или menu блок. Вложенность будет общей)
+        """
+
+        seen_nodes = set()
+        subblock_node_data = [ ]
+
+        for node in node_list:
+            if isinstance(node, renpy.ast.Say):
+                if node not in seen_nodes:
+                    subblock_node_data.append(("RAW", node))
+                seen_nodes.add(node)
+
+            elif isinstance(node, renpy.ast.Translate):
+                from_translate_nodes = get_say_nodes_from_translate_node(node)
+                for node_internal in from_translate_nodes:
+                    if node_internal not in seen_nodes:
+                        subblock_node_data.append(("RAW", node_internal))
+                    seen_nodes.add(node_internal)
+
+            elif isinstance(node, renpy.ast.If):
+                from_if_nodes = get_say_nodes_from_if_node(node, IF_SEARCH_DEPTH, nesting + 1)
+                for node_data in from_if_nodes:
+                    if node_data[1] not in seen_nodes:
+                        subblock_node_data.append(("FROM_IF", node_data[1], node_data[0], node_data[2]))
+                    seen_nodes.add(node_data[1])
+
+            elif isinstance(node, renpy.ast.Menu):
+                from_menu_nodes = get_say_nodes_from_menu_node(node, MENU_SEARCH_DEPTH, nesting + 1)
+                for node_data in from_menu_nodes:
+                    if node_data[1] not in seen_nodes:
+                        subblock_node_data.append(("FROM_MENU", node_data[1], node_data[0], node_data[2], node_data[3]))
+                    seen_nodes.add(node_data[1])
+
+        return subblock_node_data
 
     def _add_say_node_with_condition(say_nodes, condition, node, nesting):
         say_nodes.append((condition, node, nesting))
@@ -71,6 +110,10 @@ init 10 python in shcs_store:
                     nesitng_if_data = get_say_nodes_from_if_node(node, if_depth, nesting + 1)
                     say_nodes.extend(nesitng_if_data)
 
+                elif isinstance(node, renpy.ast.Menu):
+                    menu_node_data = get_say_nodes_from_menu_node(node, MENU_SEARCH_DEPTH, nesting + 1)
+                    say_nodes.extend(menu_node_data)
+
                 elif isinstance(node, renpy.ast.Translate):
                     say_nodes_from_translate = get_say_nodes_from_translate_node(node)
                     for say_node in say_nodes_from_translate:
@@ -83,6 +126,32 @@ init 10 python in shcs_store:
         if len(say_nodes) > 1 and say_nodes[-1][0] == "True":
             say_nodes[-1] = ("ELSE", say_nodes[-1][1], say_nodes[-1][2])
 
+        return say_nodes
+
+    def _add_say_node_from_menu(say_nodes, label, node, nesting, condition):
+        say_nodes.append((label, node, nesting, condition)) 
+
+    def get_say_nodes_from_menu_node(menu_node, menu_depth=10, nesting=1):
+        say_nodes = [ ] #<Шаблон: Кортеж (выбор, узел, вложенность, условие)
+
+        for idx, item in enumerate(menu_node.items):
+            if idx > menu_depth:
+                break
+
+            label, condition, node_list = item
+
+            #<Суб-блок выбора это по сути вложенность. Следовательно прибавляем тут же 1>#
+            subblock_nodes = get_say_nodes_from_menu_subblock(node_list, nesting + 1)
+            for subblock_node_data in subblock_nodes:
+                #<На данный момент, опускаем всю информацию узлов из If блока, сохраняем лишь сам узел и уровень вложенности>#
+                #<Однако информация об условии и вложенности есть и её можно использовать>#
+                #<Но если мы столкнулись с узлом из внутреннего меню, то отдаём приоритет ему в плане информации>#
+                if subblock_node_data[0] == "FROM_MENU":
+                    _add_say_node_from_menu(say_nodes, subblock_node_data[2], subblock_node_data[1], subblock_node_data[3], subblock_node_data[4])
+                else:
+                    internal_nesting = subblock_node_data[3] if subblock_node_data[0] == "FROM_IF" else nesting
+                    _add_say_node_from_menu(say_nodes, label, subblock_node_data[1], internal_nesting, condition)
+        
         return say_nodes
 
     def make_tags_safe(text):
